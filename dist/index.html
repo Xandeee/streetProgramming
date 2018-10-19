@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA_Compatible" content="ie=edge">
+	<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+	<link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+	
+	<title>Documento</title>
+
+	
+</head>
+<body style="background-color: #3434; margin-top: 20px;">
+
+	<div class="container">
+		
+		<h2>Cadastro de itens</h2>
+
+		<div class="row">
+			<div class="col-4">
+				<input type="text" id="texto" placeholder="Produto" class="form-control" style="display: inline; vertical-align: middle; width: auto;">
+				<button id="botao" class="btn btn-primary but">
+					Enviar
+					<i class="fa fa-check" aria-hidden="true"></i>
+				</button>
+			</div>
+
+				<div class="col-4">
+				<input type="text" placeholder="Calorias" id="textocal" class="form-control" style="display: inline; vertical-align: center; width: auto;">
+				<button id="botaocal" class="btn btn-primary but">
+					Enviar
+					<i class="fa fa-check" aria-hidden="true"></i>
+				</button>
+				
+			</div>
+		</div>
+
+		<hr>
+
+		<h3 style="margin-top: 40px;">Lista de Itens:</h3>
+	
+	
+	<div class="row">
+		<div class="col-3">
+			<h4>Produtos:</h4>
+			<ul class="list-group" id="lista"></ul>
+		</div>
+		<div class="col-3">
+			<h4>Calorias:</h4>
+			<ul class="list-group cal" id="listacal"></ul>
+	</div>
+		
+	</div>
+
+	<script type="text/javascript">
+
+		window.onload = () => {
+
+			const lista = document.querySelector('#lista');
+			const listacal = document.querySelector('#listacal');
+
+			const botao = document.querySelector('#botao');
+			const botaocal = document.querySelector('#botaocal');
+
+			const texto = document.querySelector('#texto');
+			const textocal = document.querySelector('#textocal');
+
+			botao.addEventListener('click', create);
+			botaocal.addEventListener('click', create);
+
+			lista.addEventListener('click', del);
+			listacal.addEventListener('click', del);
+
+
+				read();
+		};
+
+		function templateLi(id, nome, element = true) {
+
+				return `
+				${element ? `<li class="list-group-item">` : ''}
+				${nome}
+				<i class="btn btn-danger delete fa fa-trash"
+				style="float: right; margin-left: 5px;" data-id="${id}"></i>
+				<i class="btn btn-primary update fa fa-wrench"
+				style="float: right;" data-id="${id}"></i>
+				${element ? `</li>` : ''}
+				`;
+				
+		};
+
+		function templateLi1(id, calorias, element = true) {
+
+				return `
+				${element ? `<li class="list-group-item cal">` : ''}
+				${calorias}
+				<i class="btn btn-danger delete fa fa-trash"
+				style="float: right; margin-left: 5px;" data-id="${id}"></i>
+				<i class="btn btn-primary update fa fa-wrench"
+				style="float: right;" data-id="${id}"></i>
+
+				${element ? `</li>` : ''}
+				`;
+
+		}
+
+		
+		function read(){
+
+			lista.innerHTML = '';
+			listacal.innerHTML = '';
+
+			axios.get('/read')
+  			.then((response) => {
+    
+    		console.log(response);
+    			response.data.forEach(element => {
+    				lista.innerHTML += templateLi(element.id, element.name);
+    				listacal.innerHTML += templateLi1(element.id, element.calorias);
+
+    			});
+  			})
+  			.catch((error) => {
+    
+		    console.log(error);
+		  })
+		};
+
+
+		function create(){
+
+			const name = texto.value;
+			const calorias = textocal.value;
+
+			axios.post('/create', {
+				name: name,
+				calorias: calorias,
+			})
+					.then((response) => {
+
+					console.log(response);
+					lista.innerHTML += templateLi(response.data[0], name);
+					lista.innerHTML += templateLi1(response.data[0], calorias);
+			})
+
+			.catch((error) => {
+
+					console.log(error);
+			})
+		}
+		function edit(element){
+
+			if(element.target.classList.contains('update')) {
+
+				const input = document.createElement('input');
+				input.type = 'text';
+				input.setAttribute('value', '');
+				const pai =  element.target.parentElement;
+				const id = element.target.dataset.id;
+
+				pai.innerHTML = '';
+				pai.appendChild(input);
+				input.addEventListener('keydown', update.bind(pai, id, input));
+				input.focus();
+
+			}
+
+		}
+		function update(id, input) { 
+
+			const x = event.key;
+
+			if(x == null || x != 'Enter') return;
+
+			axios.put(`/update/${id}`, {name: input.value})
+
+				.then((response) => {
+
+					if(response.status = 200) {
+						this.innerHTML = templateLi(id, input.value, false);
+					}
+
+				})
+				.catch((error) => {
+
+				});
+
+		}
+
+
+		function del(element) { 
+
+			console.log(element);
+
+			if(element.target.classList.contains('delete')) {
+					const id = element.target.dataset.id;
+
+					axios.delete(`/delete/${id}`)
+					.then((response) => {
+
+						if(response.status = 200) {
+
+							lista.removeChild(element.path[1]);
+							listacal.removeChild(element.path[0]);
+						}
+
+					})
+					.catch((error) => {
+						console.log(error)
+					});
+			}
+		}
+
+
+	</script>
+
+</body>
+</html>
